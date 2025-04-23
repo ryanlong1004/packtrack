@@ -7,6 +7,7 @@ import os
 import time
 import logging
 import requests
+import typer
 from dotenv import load_dotenv
 
 # Configure logging
@@ -19,16 +20,11 @@ load_dotenv()
 
 API_KEY = os.getenv("API_KEY")
 TRACKING_URL = "https://parcelsapp.com/api/v3/shipments/tracking"
-SHIPMENTS = [
-    {
-        "trackingId": "420184339200190333885205049528",
-        "language": "en",
-        "country": "United States",
-    },
-]
+
+app = typer.Typer()
 
 
-def initiate_tracking(api_key, shipments):
+def initiate_tracking(api_key: str, shipments: list) -> str:
     """Initiates the tracking request and returns the UUID."""
     try:
         logging.info("Initiating tracking request...")
@@ -47,7 +43,7 @@ def initiate_tracking(api_key, shipments):
         return None
 
 
-def check_tracking_status(api_key, uuid, interval=10):
+def check_tracking_status(api_key: str, uuid: str, interval: int = 10):
     """Checks the tracking status using the UUID."""
     logging.info("Checking tracking status...")
     while True:
@@ -68,16 +64,25 @@ def check_tracking_status(api_key, uuid, interval=10):
             break
 
 
-def main():
-    """Main execution"""
+@app.command()
+def track(tracking_id: str, language: str = "en", country: str = "United States"):
+    """
+    Initiates tracking for a shipment and checks its status.
+
+    Args:
+        tracking_id (str): The tracking ID of the shipment.
+        language (str): The language for tracking updates. Default is "en".
+        country (str): The country for tracking updates. Default is "United States".
+    """
     if not API_KEY:
         logging.error("API key not found. Please set it in a .env file.")
-        return
+        raise typer.Exit(code=1)
 
-    uuid = initiate_tracking(API_KEY, SHIPMENTS)
+    shipments = [{"trackingId": tracking_id, "language": language, "country": country}]
+    uuid = initiate_tracking(API_KEY, shipments)
     if uuid:
         check_tracking_status(API_KEY, uuid)
 
 
 if __name__ == "__main__":
-    main()
+    app()
